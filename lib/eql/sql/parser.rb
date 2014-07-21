@@ -44,20 +44,26 @@ module Eql
       rule(:bool_or)    { str('or') }
 
 
-      rule(:identifier) { match('[a-z]').repeat(1) }
+      rule(:identifier) { match('[a-zA-Z0-9_]').repeat }
+
 
       rule(:function)   {
         identifier.as(:function) >> space? >>
         lparen >> arglist.as(:arguments) >> rparen
       }
 
-      rule(:item)       { function | identifier }
+      rule(:ref) { identifier.as(:lf) >> str("\.") >> identifier.as(:rf) }
+
+      rule(:item)       { ref | function | identifier }
+      
+      rule(:as)         { str("as") >> space >> identifier.as(:as) >> space? }
 
       rule(:arglist)    {
-        item.as(:item) >> (comma >> item.as(:item)).repeat
+        item.as(:item) >> space? >> as.maybe >> (comma >> item.as(:item) >> space? >> as.maybe).repeat
       }
+      
       rule(:namelist)   {
-        identifier.as(:name) >> (comma >> identifier.as(:name)).repeat
+        (identifier|ref).as(:name) >> space? >> as.maybe >> (comma >> (identifier|ref).as(:name) >> space? >> as.maybe ).repeat
       }
 
       rule(:single_cond){
@@ -74,19 +80,28 @@ module Eql
       rule(:select_s)   {
         str('select').as(:op) >> space? >> (arglist | str('*')).as(:select)
       }
+
       rule(:from_s)     {
         str('from') >> space? >> namelist.as(:from)
       }
+
       rule(:where_s)    {
         str('where') >> space? >> condition.as(:where)
       }
+      
+      rule(:join_s) {
+        (str('join') >> space? >> namelist.as(:with) >> space? >>(str('on') >> space? >> condition.as(:on)).maybe).as(:join)
+      }
+
       rule(:group_s)    {
         str('group') >> space? >> str('by') >> space? >> item.as(:group_by)
       }
+
       rule(:select)     {
         select_s >> space? >> from_s >> space? >>
-        (where_s >> space? >> group_s.maybe | group_s).maybe
+        (where_s.maybe >> space? >> join_s.maybe >> group_s.maybe | group_s).maybe
       }
+
       ## limit 10 desc by 'col'
 
       rule(:expression) { select } #| insert | create }

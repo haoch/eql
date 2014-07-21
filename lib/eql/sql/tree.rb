@@ -22,7 +22,12 @@ module Eql
 
   class Column
     def initialize item
-      @name = item.to_s
+      if item.class == Hash
+        @entity = item[:lf].to_s
+        @name = item[:rf].to_s
+      else
+        @name = item.to_s
+      end
     end
 
     def to_map_js
@@ -95,8 +100,19 @@ module Eql
 
   class From
     def initialize tree
-      @name = tree[:name]
+      if tree.class == Hash
+        @name = tree[:name]
+      elsif tree.class == Array
+        @name = tree.map { |t| t[:name] }
+        tree.each do |t|
+          if t[:alias].nil?
+            @alias ||= Hash.new
+            @alias[t[:alias]]=t[:name]
+          end
+        end
+      end
     end
+
     def bucket
       @name.to_s
     end

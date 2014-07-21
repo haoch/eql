@@ -31,7 +31,8 @@ module Eql
         if item[:function] then
           Function.new item
         else
-          raise item
+          # raise item
+        Column.new item
         end
       else
         Column.new item
